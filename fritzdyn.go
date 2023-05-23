@@ -153,7 +153,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				slog.Debug("Get", "url", argStr.String(), "resp", string(buf))
+				slog.Info("Get", "url", argStr.String(), "resp", string(buf))
 			case "godaddy":
 			default:
 				cmdTempl, err := template.New("cmd").Parse(u.Cmd)
