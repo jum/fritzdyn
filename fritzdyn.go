@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/exec"
 	"strings"
@@ -63,7 +65,61 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	ipaddr := r.FormValue("ipaddr")
 	ip6addr := r.FormValue("ip6addr")
-	//ip6lanprefix := r.FormValue("ip6lanprefix")
+	ip6lanprefix := r.FormValue("ip6lanprefix")
+	ether := r.FormValue("ether")
+	if len(ip6addr) == 0 && len(ip6lanprefix) > 0 && len(ether) > 0 {
+		prefix, err := netip.ParsePrefix(ip6lanprefix)
+		if err != nil {
+			slog.Error("ParsePrefix", "ip6lanprefix", ip6lanprefix, "err", err)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		if !prefix.Addr().Is6() {
+			slog.Error("is not ip6", "prefix", prefix.String())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		mac, err := net.ParseMAC(ether)
+		if err != nil {
+			slog.Error("ParseMAC", "err", err)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		// make ip6addr the EUI ipv6 from prefix and ether
+		if prefix.Bits() == -1 || prefix.Bits() > 64 {
+			slog.Error("bad prefix", "prefix", prefix.String())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		// MAC must be in EUI-48 or EUI64 form.
+		if len(mac) != 6 && len(mac) != 8 {
+			slog.Error("is not EUI-48 or EUI64", "mac", mac.String())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		pbytes := prefix.Addr().As16()
+		var ip [16]byte
+		copy(ip[0:8], pbytes[0:8])
+
+		// Flip 7th bit from left on the first byte of the MAC address, the
+		// "universal/local (U/L)" bit.  See RFC 4291, Section 2.5.1 for more
+		// information.
+
+		// If MAC is in EUI-64 form, directly copy it into output IP address.
+		if len(mac) == 8 {
+			copy(ip[8:16], mac)
+			ip[8] ^= 0x02
+		} else {
+			// If MAC is in EUI-48 form, split first three bytes and last three bytes,
+			// and inject 0xff and 0xfe between them.
+			copy(ip[8:11], mac[0:3])
+			ip[8] ^= 0x02
+			ip[11] = 0xff
+			ip[12] = 0xfe
+			copy(ip[13:16], mac[3:6])
+		}
+		ip6addr = netip.AddrFrom16(ip).String()
+	}
 	var host Host
 	tx, err := fh.DB.Beginx()
 	if err != nil {
