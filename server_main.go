@@ -23,12 +23,14 @@ const (
 )
 
 func main() {
-	isDevelopment := os.Getenv("NODE_ENV") == "development"
+	debug := os.Getenv("NODE_ENV") == "development"
 	level := new(slog.LevelVar) // Info by default
-	if isDevelopment {
+	if debug {
 		level.Set(slog.LevelDebug)
 	}
-	logger := slog.New(slog.HandlerOptions{Level: level}.NewJSONHandler(os.Stdout))
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	}))
 	slog.SetDefault(logger)
 
 	port := os.Getenv("PORT")
@@ -61,8 +63,8 @@ func main() {
 	defer fh.Close()
 	mux.Handle("/", fh)
 	var handler http.Handler = mux
-	if isDevelopment {
-		handler = handlers.CombinedLoggingHandler(os.Stdout, mux)
+	if debug {
+		handler = handlers.CombinedLoggingHandler(os.Stderr, mux)
 	}
 	srv := http.Server{
 		Addr:    addr,
