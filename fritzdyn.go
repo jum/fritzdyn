@@ -175,7 +175,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, u := range updates {
 			data["Upd"] = &u
-			slog.Debug("update", "data", data)
+			//slog.Debug("update", "data", data)
 			argTempl, err := template.New("args").Parse(u.Args)
 			if err != nil {
 				slog.Error("template.New", "err", err)
