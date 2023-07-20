@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/exp/slog"
 
+	"github.com/alexliesenfeld/health"
 	"github.com/gorilla/handlers"
 )
 
@@ -62,6 +63,14 @@ func main() {
 	}
 	defer fh.Close()
 	mux.Handle("/", fh)
+	checker := health.NewChecker(
+		health.WithCheck(health.Check{
+			Name:    "database",      // A unique check name.
+			Timeout: 2 * time.Second, // A check specific timeout.
+			Check:   fh.DB.PingContext,
+		}),
+	)
+	mux.Handle("/health", health.NewHandler(checker))
 	var handler http.Handler = mux
 	if debug {
 		handler = handlers.CombinedLoggingHandler(os.Stderr, mux)
