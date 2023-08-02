@@ -1,0 +1,4 @@
+.env
+.dockerenv
+**/.git
+**/.DS_Store
