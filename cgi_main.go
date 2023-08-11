@@ -4,12 +4,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"log/syslog"
 	"net/http/cgi"
 	"os"
 
 	slogsyslog "github.com/samber/slog-syslog"
-	"golang.org/x/exp/slog"
 )
 
 func main() {

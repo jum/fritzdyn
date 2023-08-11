@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/exp/slog"
 )
 
 type Host struct {

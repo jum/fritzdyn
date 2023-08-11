@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1-experimental
 # Dockerfile for building the project with static assets
-FROM golang:1.20-bullseye as build
+FROM golang:1.21-bullseye as build
 
 WORKDIR /goapp
 ADD . /goapp

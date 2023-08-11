@@ -1,6 +1,6 @@
 module gitea.mager.org/jum/fritzdyn
 
-go 1.20
+go 1.21
 
 require (
 	github.com/alexliesenfeld/health v0.7.0
@@ -9,7 +9,6 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/samber/slog-syslog v0.4.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 )
 
 require (

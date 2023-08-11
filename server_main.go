@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -12,8 +13,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"golang.org/x/exp/slog"
 
 	"github.com/alexliesenfeld/health"
 	"github.com/gorilla/handlers"
