@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/libdns/cloudflare"
+	"github.com/libdns/libdns"
 	_ "github.com/mattn/go-sqlite3"
 	_ "modernc.org/sqlite"
 )
@@ -39,16 +41,22 @@ type Update struct {
 }
 
 type FritzHandler struct {
-	DB *sqlx.DB
+	DB        *sqlx.DB
+	clfupdate *cloudflare.Provider
 }
 
 func NewFritzHandler() (fh *FritzHandler, err error) {
+	var c *cloudflare.Provider
 	slog.Debug("NewFritzHandler", "driver", os.Getenv("SQL_DRIVER"), "dsn", os.Getenv("SQL_DSN"))
 	db, err := sqlx.Connect(os.Getenv("SQL_DRIVER"), os.Getenv("SQL_DSN"))
 	if err != nil {
 		return nil, err
 	}
-	return &FritzHandler{DB: db}, nil
+	if apiKey := os.Getenv("CF_API_KEY"); len(apiKey) > 0 {
+		c = &cloudflare.Provider{APIToken: os.Getenv("CF_API_KEY")}
+
+	}
+	return &FritzHandler{DB: db, clfupdate: c}, nil
 }
 
 func (fh *FritzHandler) Close() error {
@@ -56,6 +64,7 @@ func (fh *FritzHandler) Close() error {
 }
 
 func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	err := r.ParseForm()
 	if err != nil {
 		slog.Error("ParseForm", "err", err)
@@ -68,6 +77,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ip6addr := r.FormValue("ip6addr")
 	ip6lanprefix := r.FormValue("ip6lanprefix")
 	ether := r.FormValue("ether")
+	domain := r.FormValue("domain")
 	if len(ip6addr) == 0 && len(ip6lanprefix) > 0 && len(ether) > 0 {
 		prefix, err := netip.ParsePrefix(ip6lanprefix)
 		if err != nil {
@@ -211,7 +221,35 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				slog.Info("Get", "url", argStr.String(), "resp", string(buf))
-			case "godaddy":
+			case "cloudflare":
+				if fh.clfupdate == nil {
+					slog.Error("CF_API_KEY not set")
+					continue
+				}
+				zone := argStr.String()
+				sub := libdns.RelativeName(domain, zone)
+				recs := []libdns.Record{
+					{
+						Type:  "A",
+						Name:  sub,
+						Value: *host.Ip4addr,
+					},
+				}
+				if host.Ip4addr != nil {
+					recs = append(recs, libdns.Record{
+						Type:  "AAAA",
+						Name:  sub,
+						Value: *host.Ip6addr,
+					})
+				}
+				slog.Debug("cloudflare SetRecords", "recs", recs)
+				newRecs, err := fh.clfupdate.SetRecords(ctx, zone, recs)
+				if err != nil {
+					slog.Error("cloudflare SetRecords", "err", err)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				slog.Info("SetRecords", "zone", argStr.String(), "newRecs", newRecs)
 			default:
 				cmdTempl, err := template.New("cmd").Parse(u.Cmd)
 				if err != nil {

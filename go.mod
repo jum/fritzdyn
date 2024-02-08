@@ -7,6 +7,8 @@ require (
 	github.com/cespare/reflex v0.3.1
 	github.com/gorilla/handlers v1.5.2
 	github.com/jmoiron/sqlx v1.3.5
+	github.com/libdns/cloudflare v0.1.0
+	github.com/libdns/libdns v0.2.0
 	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/samber/slog-syslog v1.0.0
 	modernc.org/sqlite v1.27.0
