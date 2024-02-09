@@ -235,7 +235,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Value: *host.Ip4addr,
 					},
 				}
-				if host.Ip4addr != nil {
+				if host.Ip6addr != nil {
 					recs = append(recs, libdns.Record{
 						Type:  "AAAA",
 						Name:  sub,
