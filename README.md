@@ -27,7 +27,6 @@ services:
       SQL_DRIVER: sqlite
       SQL_DSN: /data/fritzdyn.sqlite3?_journal_mode=WAL&_fk=true
       NODE_ENV: production
-      CF_API_KEY: CLOUDFLARE_API_TOKEN_VALUE
       PORT: /run/containers/fritzdyn.sock
     labels:
      caddy: fritzdyn.example.org

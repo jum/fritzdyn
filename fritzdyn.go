@@ -25,6 +25,8 @@ import (
 type Host struct {
 	Token    string
 	Name     string
+	Domain   string
+	Zone     string
 	Ip4addr  *string
 	Ip6addr  *string
 	Modified time.Time
@@ -33,6 +35,7 @@ type Host struct {
 
 type Update struct {
 	Id       int64
+	ApiKey   string `db:"api_key"`
 	Token    string
 	Cmd      string
 	Args     string
@@ -41,22 +44,16 @@ type Update struct {
 }
 
 type FritzHandler struct {
-	DB        *sqlx.DB
-	clfupdate *cloudflare.Provider
+	DB *sqlx.DB
 }
 
 func NewFritzHandler() (fh *FritzHandler, err error) {
-	var c *cloudflare.Provider
 	slog.Debug("NewFritzHandler", "driver", os.Getenv("SQL_DRIVER"), "dsn", os.Getenv("SQL_DSN"))
 	db, err := sqlx.Connect(os.Getenv("SQL_DRIVER"), os.Getenv("SQL_DSN"))
 	if err != nil {
 		return nil, err
 	}
-	if apiKey := os.Getenv("CF_API_KEY"); len(apiKey) > 0 {
-		c = &cloudflare.Provider{APIToken: os.Getenv("CF_API_KEY")}
-
-	}
-	return &FritzHandler{DB: db, clfupdate: c}, nil
+	return &FritzHandler{DB: db}, nil
 }
 
 func (fh *FritzHandler) Close() error {
@@ -150,6 +147,12 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	slog.Debug("Updating", "host", host)
+	if domain != host.Domain {
+		slog.Error("domain does not match", "domain_request", domain, "domain_update", host.Domain)
+		http.Error(w, "Configured domain does not match", http.StatusForbidden)
+		return
+	}
+
 	modified := false
 	if ipaddr != "" && (host.Ip4addr == nil || ipaddr != *host.Ip4addr) {
 		modified = true
@@ -222,12 +225,12 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				slog.Info("Get", "url", argStr.String(), "resp", string(buf))
 			case "cloudflare":
-				if fh.clfupdate == nil {
-					slog.Error("CF_API_KEY not set")
+				if len(u.ApiKey) == 0 {
+					slog.Error("api_key not set")
 					continue
 				}
-				zone := argStr.String()
-				sub := libdns.RelativeName(domain, zone)
+				clfupdate := &cloudflare.Provider{APIToken: u.ApiKey}
+				sub := libdns.RelativeName(host.Domain, host.Zone)
 				recs := []libdns.Record{
 					{
 						Type:  "A",
@@ -243,7 +246,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					})
 				}
 				slog.Debug("cloudflare SetRecords", "recs", recs)
-				newRecs, err := fh.clfupdate.SetRecords(ctx, zone, recs)
+				newRecs, err := clfupdate.SetRecords(ctx, host.Zone, recs)
 				if err != nil {
 					slog.Error("cloudflare SetRecords", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
