@@ -225,11 +225,12 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				slog.Info("Get", "url", argStr.String(), "resp", string(buf))
 			case "cloudflare":
-				if len(u.ApiKey) == 0 {
+				apiKey := os.Getenv(u.ApiKey)
+				if len(apiKey) == 0 {
 					slog.Error("api_key not set")
 					continue
 				}
-				clfupdate := &cloudflare.Provider{APIToken: u.ApiKey}
+				clfupdate := &cloudflare.Provider{APIToken: apiKey}
 				sub := libdns.RelativeName(host.Domain, host.Zone)
 				recs := []libdns.Record{
 					{
