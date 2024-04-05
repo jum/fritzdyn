@@ -171,17 +171,11 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Debug("Updating", "host", host, "modified", modified)
 	if modified {
-		err = tx.Commit()
-		if err != nil {
-			slog.Error("Get", "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 		var data = make(map[string]any)
 		data["Req"] = r
 		data["Host"] = &host
 		var updates []Update
-		err = fh.DB.Select(&updates, "SELECT * FROM updates WHERE token = ?", host.Token)
+		err = tx.Select(&updates, "SELECT * FROM updates WHERE token = ?", host.Token)
 		if err != nil {
 			slog.Error("Select", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -277,6 +271,12 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				slog.Debug("exec", "cmd", cmdStr.String(), "args", argStr.String(), "outerr", string(stdoutStderr))
 			}
+		}
+		err = tx.Commit()
+		if err != nil {
+			slog.Error("Commit", "err", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		fmt.Fprintf(w, "OK modified\n")
 	} else {
