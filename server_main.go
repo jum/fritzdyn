@@ -75,8 +75,9 @@ func main() {
 		handler = handlers.CombinedLoggingHandler(os.Stderr, mux)
 	}
 	srv := http.Server{
-		Addr:    addr,
-		Handler: handler,
+		Addr:         addr,
+		Handler:      handler,
+		WriteTimeout: 3 * time.Second, // Cloudflare DNS updates may take longer than the default 1s
 	}
 	listener, err := net.Listen(network, addr)
 	if err != nil {
