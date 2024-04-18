@@ -16,6 +16,7 @@ import (
 
 	"github.com/alexliesenfeld/health"
 	"github.com/gorilla/handlers"
+	"github.com/jussi-kalliokoski/slogdriver"
 )
 
 const (
@@ -29,9 +30,19 @@ func main() {
 	if debug {
 		level.Set(slog.LevelDebug)
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-		Level: level,
-	}))
+	var shandler slog.Handler
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if len(projectID) > 0 {
+		shandler = slogdriver.NewHandler(os.Stderr, slogdriver.Config{
+			Level:     level,
+			ProjectID: projectID,
+		})
+	} else {
+		shandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+	logger := slog.New(shandler)
 	slog.SetDefault(logger)
 
 	port := os.Getenv("PORT")
