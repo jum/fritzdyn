@@ -24,6 +24,7 @@ const (
 
 func main() {
 	debug := os.Getenv("NODE_ENV") == "development"
+	access_log := os.Getenv("ACCESS_LOG") == "true"
 	level := new(slog.LevelVar) // Info by default
 	if debug {
 		level.Set(slog.LevelDebug)
@@ -71,7 +72,7 @@ func main() {
 	)
 	mux.Handle("/health", health.NewHandler(checker))
 	var handler http.Handler = mux
-	if debug {
+	if access_log {
 		handler = handlers.CombinedLoggingHandler(os.Stderr, mux)
 	}
 	srv := http.Server{
