@@ -64,11 +64,11 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	err := r.ParseForm()
 	if err != nil {
-		slog.Error("ParseForm", "err", err)
+		slog.ErrorContext(ctx, "ParseForm", "err", err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	slog.Debug("req", "url", r.URL, "header", r.Header, "form", r.Form)
+	slog.DebugContext(ctx, "req", "url", r.URL, "header", r.Header, "form", r.Form)
 	token := r.FormValue("token")
 	ipaddr := r.FormValue("ipaddr")
 	ip6addr := r.FormValue("ip6addr")
@@ -78,30 +78,30 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(ip6addr) == 0 && len(ip6lanprefix) > 0 && len(ether) > 0 {
 		prefix, err := netip.ParsePrefix(ip6lanprefix)
 		if err != nil {
-			slog.Error("ParsePrefix", "ip6lanprefix", ip6lanprefix, "err", err)
+			slog.ErrorContext(ctx, "ParsePrefix", "ip6lanprefix", ip6lanprefix, "err", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		if !prefix.Addr().Is6() {
-			slog.Error("is not ip6", "prefix", prefix.String())
+			slog.ErrorContext(ctx, "is not ip6", "prefix", prefix.String())
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		mac, err := net.ParseMAC(ether)
 		if err != nil {
-			slog.Error("ParseMAC", "err", err)
+			slog.ErrorContext(ctx, "ParseMAC", "err", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		// make ip6addr the EUI ipv6 from prefix and ether
 		if prefix.Bits() == -1 || prefix.Bits() > 64 {
-			slog.Error("bad prefix", "prefix", prefix.String())
+			slog.ErrorContext(ctx, "bad prefix", "prefix", prefix.String())
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		// MAC must be in EUI-48 or EUI64 form.
 		if len(mac) != 6 && len(mac) != 8 {
-			slog.Error("is not EUI-48 or EUI64", "mac", mac.String())
+			slog.ErrorContext(ctx, "is not EUI-48 or EUI64", "mac", mac.String())
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
@@ -131,7 +131,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var host Host
 	tx, err := fh.DB.Beginx()
 	if err != nil {
-		slog.Error("Beginx", "err", err)
+		slog.ErrorContext(ctx, "Beginx", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -142,13 +142,13 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		slog.Error("Get", "err", err)
+		slog.ErrorContext(ctx, "Get", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	slog.Debug("Updating", "host", host)
+	slog.DebugContext(ctx, "Updating", "host", host)
 	if domain != host.Domain {
-		slog.Error("domain does not match", "domain_request", domain, "domain_update", host.Domain)
+		slog.ErrorContext(ctx, "domain does not match", "domain_request", domain, "domain_update", host.Domain)
 		http.Error(w, "Configured domain does not match", http.StatusForbidden)
 		return
 	}
@@ -165,11 +165,11 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, err = tx.Exec("UPDATE hosts SET ip6addr = ? WHERE token = ?", host.Ip6addr, host.Token)
 	}
 	if err != nil {
-		slog.Error("Exec", "err", err)
+		slog.ErrorContext(ctx, "Exec", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	slog.Debug("Updating", "host", host, "modified", modified)
+	slog.DebugContext(ctx, "Updating", "host", host, "modified", modified)
 	if modified {
 		var data = make(map[string]any)
 		data["Req"] = r
@@ -177,7 +177,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var updates []Update
 		err = tx.Select(&updates, "SELECT * FROM updates WHERE token = ?", host.Token)
 		if err != nil {
-			slog.Error("Select", "err", err)
+			slog.ErrorContext(ctx, "Select", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -186,14 +186,14 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			//slog.Debug("update", "data", data)
 			argTempl, err := template.New("args").Parse(u.Args)
 			if err != nil {
-				slog.Error("template.New", "err", err)
+				slog.ErrorContext(ctx, "template.New", "err", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			var argStr strings.Builder
 			err = argTempl.Execute(&argStr, data)
 			if err != nil {
-				slog.Error("Execute", "err", err)
+				slog.ErrorContext(ctx, "Execute", "err", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -201,27 +201,27 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			case "GET":
 				res, err := http.Get(argStr.String())
 				if err != nil {
-					slog.Error("Get", "err", err)
+					slog.ErrorContext(ctx, "Get", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				defer res.Body.Close()
 				if res.StatusCode/100 != 2 {
-					slog.Error("Get", "status", res.Status, "code", res.StatusCode)
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+					slog.ErrorContext(ctx, "Get", "status", res.Status, "code", res.StatusCode)
+					http.Error(w, res.Status, http.StatusInternalServerError)
 					return
 				}
 				buf, err := io.ReadAll(res.Body)
 				if err != nil {
-					slog.Error("ReadAll", "err", err)
+					slog.ErrorContext(ctx, "ReadAll", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				slog.Info("Get", "url", argStr.String(), "resp", string(buf))
+				slog.InfoContext(ctx, "Get", "url", argStr.String(), "resp", string(buf))
 			case "cloudflare":
 				apiKey := os.Getenv(u.ApiKey)
 				if len(apiKey) == 0 {
-					slog.Error("api_key not set")
+					slog.ErrorContext(ctx, "api_key not set")
 					continue
 				}
 				clfupdate := &cloudflare.Provider{APIToken: apiKey}
@@ -240,41 +240,41 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Value: *host.Ip6addr,
 					})
 				}
-				slog.Debug("cloudflare SetRecords", "recs", recs)
+				slog.DebugContext(ctx, "cloudflare SetRecords", "recs", recs)
 				newRecs, err := clfupdate.SetRecords(ctx, host.Zone, recs)
 				if err != nil {
-					slog.Error("cloudflare SetRecords", "err", err)
+					slog.ErrorContext(ctx, "cloudflare SetRecords", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				slog.Info("SetRecords", "zone", argStr.String(), "newRecs", newRecs)
+				slog.InfoContext(ctx, "SetRecords", "zone", argStr.String(), "newRecs", newRecs)
 			default:
 				cmdTempl, err := template.New("cmd").Parse(u.Cmd)
 				if err != nil {
-					slog.Error("template.New", "err", err)
+					slog.ErrorContext(ctx, "template.New", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				var cmdStr strings.Builder
 				err = cmdTempl.Execute(&cmdStr, data)
 				if err != nil {
-					slog.Error("Execute", "err", err)
+					slog.ErrorContext(ctx, "Execute", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				cmd := exec.Command("sh", "-c", cmdStr.String()+" \""+argStr.String()+"\"")
 				stdoutStderr, err := cmd.CombinedOutput()
 				if err != nil {
-					slog.Error("cmd", "err", err)
+					slog.ErrorContext(ctx, "cmd", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				slog.Debug("exec", "cmd", cmdStr.String(), "args", argStr.String(), "outerr", string(stdoutStderr))
+				slog.DebugContext(ctx, "exec", "cmd", cmdStr.String(), "args", argStr.String(), "outerr", string(stdoutStderr))
 			}
 		}
 		err = tx.Commit()
 		if err != nil {
-			slog.Error("Commit", "err", err)
+			slog.ErrorContext(ctx, "Commit", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

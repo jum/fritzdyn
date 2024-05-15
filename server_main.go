@@ -16,6 +16,7 @@ import (
 
 	"github.com/alexliesenfeld/health"
 	"github.com/gorilla/handlers"
+	"github.com/jum/traceparent"
 	"github.com/jussi-kalliokoski/slogdriver"
 )
 
@@ -88,7 +89,7 @@ func main() {
 	}
 	srv := http.Server{
 		Addr:    addr,
-		Handler: handler,
+		Handler: traceparent.New(handler),
 	}
 	listener, err := net.Listen(network, addr)
 	if err != nil {

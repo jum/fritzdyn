@@ -1,13 +1,14 @@
 module github.com/jum/fritzdyn
 
-go 1.21
+go 1.22.3
 
 require (
 	github.com/alexliesenfeld/health v0.8.0
 	github.com/cespare/reflex v0.3.1
 	github.com/gorilla/handlers v1.5.2
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/jussi-kalliokoski/slogdriver v1.0.0
+	github.com/jum/traceparent v0.0.3
+	github.com/jussi-kalliokoski/slogdriver v1.0.1
 	github.com/libdns/cloudflare v0.1.1
 	github.com/libdns/libdns v0.2.2
 	github.com/mattn/go-sqlite3 v1.14.22
