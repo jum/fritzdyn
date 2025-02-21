@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/alexliesenfeld/health"
-	"github.com/gorilla/handlers"
+	"github.com/felixge/httpsnoop"
 	"github.com/jum/traceparent"
 	"github.com/jussi-kalliokoski/slogdriver"
 )
@@ -85,7 +85,11 @@ func main() {
 	mux.Handle("/health", health.NewHandler(checker))
 	var handler http.Handler = mux
 	if access_log {
-		handler = handlers.CombinedLoggingHandler(os.Stderr, mux)
+		h := handler
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			m := httpsnoop.CaptureMetrics(h, w, r)
+			slog.InfoContext(r.Context(), "handled request", "method", r.Method, "URL", r.URL.String(), "status", m.Code, "duration", float64(m.Duration)/float64(time.Second), "size", m.Written)
+		})
 	}
 	srv := http.Server{
 		Addr:    addr,
