@@ -1,5 +1,5 @@
 # Dockerfile for building the project with static assets
-FROM --platform=$BUILDPLATFORM golang:1.22-bullseye as build
+FROM --platform=$BUILDPLATFORM golang:1.24-bookworm as build
 WORKDIR /goapp
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go mod download

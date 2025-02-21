@@ -18,7 +18,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/libdns/cloudflare"
 	"github.com/libdns/libdns"
-	_ "github.com/mattn/go-sqlite3"
 	_ "modernc.org/sqlite"
 )
 
