@@ -7,11 +7,11 @@ require (
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/jum/traceparent v0.0.3
-	github.com/jussi-kalliokoski/slogdriver v1.0.1
-	github.com/libdns/cloudflare v0.1.2
-	github.com/libdns/libdns v0.2.3
+	github.com/jussi-kalliokoski/slogdriver v1.0.2
+	github.com/libdns/cloudflare v0.2.1
+	github.com/libdns/libdns v1.0.0
 	github.com/samber/slog-syslog v1.0.0
-	modernc.org/sqlite v1.35.0
+	modernc.org/sqlite v1.37.0
 )
 
 require (
@@ -27,13 +27,13 @@ require (
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/ogier/pflag v0.0.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/samber/lo v1.49.1 // indirect
-	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
-	modernc.org/libc v1.61.13 // indirect
+	github.com/samber/lo v1.50.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
+	modernc.org/libc v1.65.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.8.2 // indirect
+	modernc.org/memory v1.10.0 // indirect
 )
 
 tool github.com/cespare/reflex

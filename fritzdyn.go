@@ -231,17 +231,15 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				clfupdate := &cloudflare.Provider{APIToken: apiKey}
 				sub := libdns.RelativeName(host.Domain, host.Zone)
 				recs := []libdns.Record{
-					{
-						Type:  "A",
-						Name:  sub,
-						Value: *host.Ip4addr,
+					libdns.Address{
+						Name: sub,
+						IP:   netip.MustParseAddr(*host.Ip4addr),
 					},
 				}
 				if host.Ip6addr != nil {
-					recs = append(recs, libdns.Record{
-						Type:  "AAAA",
-						Name:  sub,
-						Value: *host.Ip6addr,
+					recs = append(recs, libdns.Address{
+						Name: sub,
+						IP:   netip.MustParseAddr(*host.Ip6addr),
 					})
 				}
 				slog.DebugContext(ctx, "cloudflare SetRecords", "recs", recs)
