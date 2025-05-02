@@ -158,6 +158,11 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		host.Ip4addr = &ipaddr
 		_, err = tx.Exec("UPDATE hosts SET ip4addr = ? WHERE token = ?", host.Ip4addr, host.Token)
 	}
+	if err != nil {
+		slog.ErrorContext(ctx, "Exec", "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if ip6addr != "" && (host.Ip6addr == nil || ip6addr != *host.Ip6addr) {
 		modified = true
 		host.Ip6addr = &ip6addr
