@@ -34,7 +34,7 @@ type Host struct {
 
 type Update struct {
 	Id       int64
-	ApiKey   string `db:"api_key"`
+	ApiKey   *string `db:"api_key"`
 	Token    string
 	Cmd      string
 	Args     string
@@ -223,9 +223,13 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				slog.InfoContext(ctx, "Get", "url", argStr.String(), "resp", string(buf))
 			case "cloudflare":
-				apiKey := os.Getenv(u.ApiKey)
-				if len(apiKey) == 0 {
+				if u.ApiKey == nil {
 					slog.ErrorContext(ctx, "api_key not set")
+					continue
+				}
+				apiKey := os.Getenv(*u.ApiKey)
+				if len(apiKey) == 0 {
+					slog.ErrorContext(ctx, "api_key ENV variable not set")
 					continue
 				}
 				clfupdate := &cloudflare.Provider{APIToken: apiKey}
