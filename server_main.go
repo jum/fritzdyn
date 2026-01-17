@@ -20,6 +20,7 @@ import (
 	"github.com/jum/traceparent"
 	"github.com/jussi-kalliokoski/slogdriver"
 	slogctx "github.com/veqryn/slog-context"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -27,6 +28,16 @@ const (
 )
 
 func main() {
+	otelShutdown, prop, err := setupOTEL(context.Background())
+	if err != nil {
+		slog.Error("setupOTEL", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := otelShutdown(context.Background()); err != nil {
+			slog.Error("otel shutdown", "err", err)
+		}
+	}()
 	var traceMiddleware func(http.Handler) http.Handler
 	debug := os.Getenv("NODE_ENV") == "development"
 	access_log := os.Getenv("ACCESS_LOG") == "true"
@@ -109,6 +120,14 @@ func main() {
 			m := httpsnoop.CaptureMetrics(h, w, r)
 			slog.InfoContext(r.Context(), "handled request", "method", r.Method, "URL", r.URL.String(), "status", m.Code, "duration", float64(m.Duration)/float64(time.Second), "size", m.Written)
 		})
+	}
+	if os.Getenv("ENABLE_OTEL") == "true" {
+		handler = otelhttp.NewHandler(handler, "server",
+			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+				return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+			}),
+			otelhttp.WithPropagators(prop),
+		)
 	}
 	srv := http.Server{
 		Addr:    addr,
