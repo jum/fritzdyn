@@ -21,6 +21,7 @@ require (
 )
 
 require (
+	github.com/XSAM/otelsql v0.41.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/reflex v0.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

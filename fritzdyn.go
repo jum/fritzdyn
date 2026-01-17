@@ -18,6 +18,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/libdns/cloudflare"
 	"github.com/libdns/libdns"
+	"github.com/XSAM/otelsql"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	_ "modernc.org/sqlite"
 )
 
@@ -47,10 +50,23 @@ type FritzHandler struct {
 }
 
 func NewFritzHandler() (fh *FritzHandler, err error) {
-	slog.Debug("NewFritzHandler", "driver", os.Getenv("SQL_DRIVER"), "dsn", os.Getenv("SQL_DSN"))
-	db, err := sqlx.Connect(os.Getenv("SQL_DRIVER"), os.Getenv("SQL_DSN"))
-	if err != nil {
-		return nil, err
+	driverName := os.Getenv("SQL_DRIVER")
+	dsn := os.Getenv("SQL_DSN")
+	slog.Debug("NewFritzHandler", "driver", driverName, "dsn", dsn)
+	var db *sqlx.DB
+	if os.Getenv("ENABLE_OTEL") == "true" {
+		db_instrumented, err := otelsql.Open(driverName, dsn, otelsql.WithAttributes(
+			semconv.DBSystemSqlite,
+		))
+		if err != nil {
+			return nil, err
+		}
+		db = sqlx.NewDb(db_instrumented, driverName)
+	} else {
+		db, err = sqlx.Connect(driverName, dsn)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &FritzHandler{DB: db}, nil
 }
@@ -128,20 +144,20 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ip6addr = netip.AddrFrom16(ip).String()
 	}
 	var host Host
-	tx, err := fh.DB.Beginx()
+	tx, err := fh.DB.BeginTxx(ctx, nil)
 	if err != nil {
-		slog.ErrorContext(ctx, "Beginx", "err", err)
+		slog.ErrorContext(ctx, "BeginTxx", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer tx.Rollback()
-	err = tx.Get(&host, "select * FROM hosts WHERE token = ?", token)
+	err = tx.GetContext(ctx, &host, "select * FROM hosts WHERE token = ?", token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.NotFound(w, r)
 			return
 		}
-		slog.ErrorContext(ctx, "Get", "err", err)
+		slog.ErrorContext(ctx, "GetContext", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -156,20 +172,20 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ipaddr != "" && (host.Ip4addr == nil || ipaddr != *host.Ip4addr) {
 		modified = true
 		host.Ip4addr = &ipaddr
-		_, err = tx.Exec("UPDATE hosts SET ip4addr = ? WHERE token = ?", host.Ip4addr, host.Token)
+		_, err = tx.ExecContext(ctx, "UPDATE hosts SET ip4addr = ? WHERE token = ?", host.Ip4addr, host.Token)
 	}
 	if err != nil {
-		slog.ErrorContext(ctx, "Exec", "err", err)
+		slog.ErrorContext(ctx, "ExecContext", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if ip6addr != "" && (host.Ip6addr == nil || ip6addr != *host.Ip6addr) {
 		modified = true
 		host.Ip6addr = &ip6addr
-		_, err = tx.Exec("UPDATE hosts SET ip6addr = ? WHERE token = ?", host.Ip6addr, host.Token)
+		_, err = tx.ExecContext(ctx, "UPDATE hosts SET ip6addr = ? WHERE token = ?", host.Ip6addr, host.Token)
 	}
 	if err != nil {
-		slog.ErrorContext(ctx, "Exec", "err", err)
+		slog.ErrorContext(ctx, "ExecContext", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -179,9 +195,9 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data["Req"] = r
 		data["Host"] = &host
 		var updates []Update
-		err = tx.Select(&updates, "SELECT * FROM updates WHERE token = ?", host.Token)
+		err = tx.SelectContext(ctx, &updates, "SELECT * FROM updates WHERE token = ?", host.Token)
 		if err != nil {
-			slog.ErrorContext(ctx, "Select", "err", err)
+			slog.ErrorContext(ctx, "SelectContext", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -203,9 +219,16 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			switch u.Cmd {
 			case "GET":
-				res, err := http.Get(argStr.String())
+				req, err := http.NewRequestWithContext(ctx, "GET", argStr.String(), nil)
 				if err != nil {
-					slog.ErrorContext(ctx, "Get", "err", err)
+					slog.ErrorContext(ctx, "NewRequestWithContext", "err", err)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				client := http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+				res, err := client.Do(req)
+				if err != nil {
+					slog.ErrorContext(ctx, "Do", "err", err)
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
