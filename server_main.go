@@ -121,6 +121,7 @@ func main() {
 			slog.InfoContext(r.Context(), "handled request", "method", r.Method, "URL", r.URL.String(), "status", m.Code, "duration", float64(m.Duration)/float64(time.Second), "size", m.Written)
 		})
 	}
+	handler = traceMiddleware(handler)
 	if os.Getenv("ENABLE_OTEL") == "true" {
 		handler = otelhttp.NewHandler(handler, "server",
 			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
@@ -131,7 +132,7 @@ func main() {
 	}
 	srv := http.Server{
 		Addr:    addr,
-		Handler: traceMiddleware(handler),
+		Handler: handler,
 	}
 	listener, err := net.Listen(network, addr)
 	if err != nil {
