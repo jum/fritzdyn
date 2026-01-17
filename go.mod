@@ -6,11 +6,13 @@ require (
 	github.com/alexliesenfeld/health v0.8.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/jum/slog-traceparent v0.0.2
 	github.com/jum/traceparent v0.0.3
 	github.com/jussi-kalliokoski/slogdriver v1.0.2
 	github.com/libdns/cloudflare v0.2.1
 	github.com/libdns/libdns v1.0.0
 	github.com/samber/slog-syslog v1.0.0
+	github.com/veqryn/slog-context v0.8.0
 	modernc.org/sqlite v1.37.0
 )
 
@@ -19,6 +21,7 @@ require (
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jussi-kalliokoski/goldjson v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect

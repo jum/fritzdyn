@@ -16,8 +16,10 @@ import (
 
 	"github.com/alexliesenfeld/health"
 	"github.com/felixge/httpsnoop"
+	slogtp "github.com/jum/slog-traceparent"
 	"github.com/jum/traceparent"
 	"github.com/jussi-kalliokoski/slogdriver"
+	slogctx "github.com/veqryn/slog-context"
 )
 
 const (
@@ -25,6 +27,7 @@ const (
 )
 
 func main() {
+	var traceMiddleware func(http.Handler) http.Handler
 	debug := os.Getenv("NODE_ENV") == "development"
 	access_log := os.Getenv("ACCESS_LOG") == "true"
 	level := new(slog.LevelVar) // Info by default
@@ -34,14 +37,30 @@ func main() {
 	var shandler slog.Handler
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if len(projectID) > 0 {
+		traceMiddleware = traceparent.New
 		shandler = slogdriver.NewHandler(os.Stderr, slogdriver.Config{
 			Level:     level,
 			ProjectID: projectID,
 		})
 	} else {
-		shandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-			Level: level,
-		})
+		traceMiddleware = slogtp.New
+		shandler = slogctx.NewHandler(
+			slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+				Level: level,
+			}),
+			&slogctx.HandlerOptions{
+				// Prependers stays as default (leaving as nil would accomplish the same)
+				Prependers: []slogctx.AttrExtractor{
+					slogctx.ExtractPrepended,
+				},
+				// Appenders first appends anything added with slogctx.Append,
+				// then appends our custom ctx value
+				Appenders: []slogctx.AttrExtractor{
+					slogctx.ExtractAppended,
+					slogtp.TraceParentExtractor,
+				},
+			},
+		)
 	}
 	logger := slog.New(shandler)
 	slog.SetDefault(logger)
@@ -93,7 +112,7 @@ func main() {
 	}
 	srv := http.Server{
 		Addr:    addr,
-		Handler: traceparent.New(handler),
+		Handler: traceMiddleware(handler),
 	}
 	listener, err := net.Listen(network, addr)
 	if err != nil {
