@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -53,6 +55,14 @@ func setupOTEL(ctx context.Context) (shutdown func(context.Context) error, prop 
 	}
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
+
+	// Instrument the default transport so that all clients (including libdns/cloudflare) are instrumented
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = otelhttp.NewTransport(oldTransport)
+	shutdownFuncs = append(shutdownFuncs, func(context.Context) error {
+		http.DefaultTransport = oldTransport
+		return nil
+	})
 
 	return
 }

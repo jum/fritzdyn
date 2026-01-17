@@ -19,7 +19,6 @@ import (
 	"github.com/libdns/cloudflare"
 	"github.com/libdns/libdns"
 	"github.com/XSAM/otelsql"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	_ "modernc.org/sqlite"
 )
@@ -225,7 +224,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				client := http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+				client := http.Client{}
 				res, err := client.Do(req)
 				if err != nil {
 					slog.ErrorContext(ctx, "Do", "err", err)
