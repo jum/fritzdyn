@@ -3,8 +3,10 @@ module github.com/jum/fritzdyn
 go 1.24.0
 
 require (
+	github.com/XSAM/otelsql v0.41.0
 	github.com/alexliesenfeld/health v0.8.0
 	github.com/felixge/httpsnoop v1.0.4
+	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/jum/slog-traceparent v0.0.2
 	github.com/jum/traceparent v0.0.3
@@ -21,7 +23,6 @@ require (
 )
 
 require (
-	github.com/XSAM/otelsql v0.41.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/reflex v0.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -30,7 +31,6 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect
 	github.com/jussi-kalliokoski/goldjson v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
