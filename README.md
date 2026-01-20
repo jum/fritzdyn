@@ -74,8 +74,7 @@ services:
      caddy.skip_log: /health
      
      # Secure /admin endpoint
-     caddy.@admin.path: "/admin*"
-     caddy.basicauth: "@admin"
+     caddy.basicauth: /admin*
      # User "admin" with hashed password (replace with your own hash)
      caddy.basicauth.admin: "JDJhJDE0JH...." 
 
