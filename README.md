@@ -32,7 +32,11 @@ Stores actions to perform when a host's IP address changes.
     *   `GET`: Performs an HTTP GET request to the URL specified in `args`.
     *   `cloudflare`: Updates Cloudflare DNS records (requires `api_key` to point to an environment variable containing the CF token).
     *   Shell command: Any other value is treated as a shell command to execute.
-*   `args`: Arguments for the command or the URL for `GET`.
+*   `args`: Arguments for the command or the URL for `GET`. The args string is processed as a Go template.
+    *   **Template Variables:**
+        *   `{{.Host}}`: The Host object (e.g., `{{.Host.Ip4addr}}`, `{{.Host.Ip6addr}}`, `{{.Host.Name}}`, `{{.Host.Domain}}`).
+        *   `{{.Req}}`: The HTTP Request object.
+        *   `{{.Upd}}`: The current Update object.
 *   `api_key`: Name of the environment variable containing the API key (for Cloudflare).
 
 ## Security (Caddy & Basic Auth)
