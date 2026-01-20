@@ -74,7 +74,7 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) handleHosts(w http.ResponseWriter, r *http.Request) {
 	var hosts []Host
-	err := h.DB.Select(&hosts, "SELECT * FROM hosts ORDER BY created DESC")
+	err := h.DB.SelectContext(r.Context(), &hosts, "SELECT * FROM hosts ORDER BY created DESC")
 	if err != nil {
 		slog.Error("Select hosts", "err", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -111,7 +111,7 @@ func (h *AdminHandler) handleHostNew(w http.ResponseWriter, r *http.Request) {
 			host.Ip6addr = &ip6
 		}
 
-		_, err = h.DB.Exec("INSERT INTO hosts (token, name, domain, zone, ip4addr, ip6addr) VALUES (?, ?, ?, ?, ?, ?)",
+		_, err = h.DB.ExecContext(r.Context(), "INSERT INTO hosts (token, name, domain, zone, ip4addr, ip6addr) VALUES (?, ?, ?, ?, ?, ?)",
 			host.Token, host.Name, host.Domain, host.Zone, host.Ip4addr, host.Ip6addr)
 		
 		if err != nil {
@@ -131,7 +131,7 @@ func (h *AdminHandler) handleHostNew(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) handleHostEdit(w http.ResponseWriter, r *http.Request, token string) {
 	if r.Method == "DELETE" {
-		_, err := h.DB.Exec("DELETE FROM hosts WHERE token = ?", token)
+		_, err := h.DB.ExecContext(r.Context(), "DELETE FROM hosts WHERE token = ?", token)
 		if err != nil {
 			slog.Error("Delete host", "err", err)
 			http.Error(w, "Database error", http.StatusInternalServerError)
@@ -159,7 +159,7 @@ func (h *AdminHandler) handleHostEdit(w http.ResponseWriter, r *http.Request, to
 		if ip4 != "" { ip4ptr = &ip4 }
 		if ip6 != "" { ip6ptr = &ip6 }
 
-		_, err = h.DB.Exec("UPDATE hosts SET name=?, domain=?, zone=?, ip4addr=?, ip6addr=? WHERE token=?",
+		_, err = h.DB.ExecContext(r.Context(), "UPDATE hosts SET name=?, domain=?, zone=?, ip4addr=?, ip6addr=? WHERE token=?",
 			name, domain, zone, ip4ptr, ip6ptr, token)
 		
 		if err != nil {
@@ -172,14 +172,14 @@ func (h *AdminHandler) handleHostEdit(w http.ResponseWriter, r *http.Request, to
 	}
 
 	var host Host
-	err := h.DB.Get(&host, "SELECT * FROM hosts WHERE token = ?", token)
+	err := h.DB.GetContext(r.Context(), &host, "SELECT * FROM hosts WHERE token = ?", token)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
 	var updates []Update
-	err = h.DB.Select(&updates, "SELECT * FROM updates WHERE token = ?", token)
+	err = h.DB.SelectContext(r.Context(), &updates, "SELECT * FROM updates WHERE token = ?", token)
 	if err != nil {
 		slog.Error("Select updates", "err", err)
 	}
@@ -208,7 +208,7 @@ func (h *AdminHandler) handleUpdates(w http.ResponseWriter, r *http.Request) {
 			apiKeyPtr = &apiKey
 		}
 
-		res, err := h.DB.Exec("INSERT INTO updates (token, cmd, args, api_key) VALUES (?, ?, ?, ?)",
+		res, err := h.DB.ExecContext(r.Context(), "INSERT INTO updates (token, cmd, args, api_key) VALUES (?, ?, ?, ?)",
 			token, cmd, args, apiKeyPtr)
 		if err != nil {
 			slog.Error("Insert update", "err", err)
@@ -238,7 +238,7 @@ func (h *AdminHandler) handleUpdates(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		_, err = h.DB.Exec("DELETE FROM updates WHERE id = ?", id)
+		_, err = h.DB.ExecContext(r.Context(), "DELETE FROM updates WHERE id = ?", id)
 		if err != nil {
 			slog.Error("Delete update", "err", err)
 			http.Error(w, "Database error", http.StatusInternalServerError)
