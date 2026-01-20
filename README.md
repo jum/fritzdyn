@@ -69,12 +69,11 @@ services:
     labels:
      caddy: fritzdyn.example.org
      caddy.tls: admin@example.org
-     caddy.tls.dns: cloudflare {env.CF_API_KEY}
+     caddy.tls.dns: cloudflare {$CF_API_KEY}
      caddy.import: norobots
-     caddy.skip_log: /health
      
      # Secure /admin endpoint
-     caddy.basicauth: /admin*
+     caddy.basicauth: "/admin*"
      # User "admin" with hashed password.
      # IMPORTANT: Escape dollar signs in docker-compose (e.g., $$2a$$ instead of $2a$)
      caddy.basicauth.admin: "$$2a$$14$$..." 
