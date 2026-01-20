@@ -75,8 +75,9 @@ services:
      
      # Secure /admin endpoint
      caddy.basicauth: /admin*
-     # User "admin" with hashed password (replace with your own hash)
-     caddy.basicauth.admin: "JDJhJDE0JH...." 
+     # User "admin" with hashed password.
+     # IMPORTANT: Escape dollar signs in docker-compose (e.g., $$2a$$ instead of $2a$)
+     caddy.basicauth.admin: "$$2a$$14$$..." 
 
      caddy.reverse_proxy: "unix//run/containers/fritzdyn.sock"
 networks:
