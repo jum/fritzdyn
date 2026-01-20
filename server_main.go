@@ -104,6 +104,8 @@ func main() {
 		os.Exit(1)
 	}
 	defer fh.Close()
+	ah := NewAdminHandler(fh.DB)
+	mux.Handle("/admin/", ah)
 	mux.Handle("/", fh)
 	checker := health.NewChecker(
 		health.WithCheck(health.Check{
