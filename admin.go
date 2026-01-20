@@ -232,7 +232,7 @@ func (h *AdminHandler) handleUpdates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "DELETE" {
-		idStr := strings.TrimPrefix(r.URL.Path, "/updates/")
+		idStr := strings.TrimPrefix(r.URL.Path, "/admin/updates/")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
