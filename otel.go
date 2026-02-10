@@ -83,7 +83,7 @@ func newTraceProvider(ctx context.Context) (*trace.TracerProvider, error) {
 	res, err := resource.Merge(
 		resource.NewWithAttributes(
 			"",
-			semconv.ServiceName("slogtest"), // Fallback service name
+			semconv.ServiceName("fritzdyn"), // Fallback service name
 		),
 		resource.Default(), // Contains OTEL_SERVICE_NAME if set
 	)
