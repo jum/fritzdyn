@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"
 	"github.com/libdns/cloudflare"
 	"github.com/libdns/libdns"
-	"github.com/XSAM/otelsql"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	_ "modernc.org/sqlite"
 )
@@ -84,6 +84,10 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.DebugContext(ctx, "req", "url", r.URL, "header", r.Header, "form", r.Form)
 	token := r.FormValue("token")
+	if len(token) == 0 {
+		http.NotFound(w, r)
+		return
+	}
 	ipaddr := r.FormValue("ipaddr")
 	ip6addr := r.FormValue("ip6addr")
 	ip6lanprefix := r.FormValue("ip6lanprefix")
