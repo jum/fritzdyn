@@ -6,7 +6,12 @@ on:
       - develop
   workflow_dispatch:
 jobs:
+  govulncheck:
+    uses: ./.github/workflows/govulncheck.yaml
+  lint:
+    uses: ./.github/workflows/lint.yaml
   Build-Docker:
+    needs: [govulncheck, lint]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Sources

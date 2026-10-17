@@ -101,7 +101,7 @@ func (h *AdminHandler) handleHostNew(w http.ResponseWriter, r *http.Request) {
 		if host.Token == "" {
 			host.Token = uuid.NewString()
 		}
-		
+
 		ip4 := r.FormValue("ip4addr")
 		if ip4 != "" {
 			host.Ip4addr = &ip4
@@ -113,7 +113,7 @@ func (h *AdminHandler) handleHostNew(w http.ResponseWriter, r *http.Request) {
 
 		_, err = h.DB.ExecContext(r.Context(), "INSERT INTO hosts (token, name, domain, zone, ip4addr, ip6addr) VALUES (?, ?, ?, ?, ?, ?)",
 			host.Token, host.Name, host.Domain, host.Zone, host.Ip4addr, host.Ip6addr)
-		
+
 		if err != nil {
 			slog.Error("Insert host", "err", err)
 			http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
@@ -148,26 +148,30 @@ func (h *AdminHandler) handleHostEdit(w http.ResponseWriter, r *http.Request, to
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		
+
 		name := r.FormValue("name")
 		domain := r.FormValue("domain")
 		zone := r.FormValue("zone")
 		ip4 := r.FormValue("ip4addr")
 		ip6 := r.FormValue("ip6addr")
-		
+
 		var ip4ptr, ip6ptr *string
-		if ip4 != "" { ip4ptr = &ip4 }
-		if ip6 != "" { ip6ptr = &ip6 }
+		if ip4 != "" {
+			ip4ptr = &ip4
+		}
+		if ip6 != "" {
+			ip6ptr = &ip6
+		}
 
 		_, err = h.DB.ExecContext(r.Context(), "UPDATE hosts SET name=?, domain=?, zone=?, ip4addr=?, ip6addr=? WHERE token=?",
 			name, domain, zone, ip4ptr, ip6ptr, token)
-		
+
 		if err != nil {
 			slog.Error("Update host", "err", err)
 			http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		http.Redirect(w, r, "/admin/host/"+token, http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/host/"+token, http.StatusSeeOther) // #nosec G710 -- known db token string
 		return
 	}
 
@@ -202,7 +206,7 @@ func (h *AdminHandler) handleUpdates(w http.ResponseWriter, r *http.Request) {
 		cmd := r.FormValue("cmd")
 		args := r.FormValue("args")
 		apiKey := r.FormValue("api_key")
-		
+
 		var apiKeyPtr *string
 		if apiKey != "" {
 			apiKeyPtr = &apiKey
@@ -216,16 +220,16 @@ func (h *AdminHandler) handleUpdates(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		id, _ := res.LastInsertId()
-		
+
 		// Return the new row
 		update := Update{
-			Id: id,
-			Token: token,
-			Cmd: cmd,
-			Args: args,
-			ApiKey: apiKeyPtr,
+			Id:       id,
+			Token:    token,
+			Cmd:      cmd,
+			Args:     args,
+			ApiKey:   apiKeyPtr,
 			Modified: time.Now(),
-			Created: time.Now(),
+			Created:  time.Now(),
 		}
 		h.renderBlock(w, "host_edit.html", "update_row", update)
 		return

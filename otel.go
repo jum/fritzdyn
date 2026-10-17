@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -40,7 +41,12 @@ func setupOTEL(ctx context.Context) (shutdown func(context.Context) error, prop 
 	// handleErr calls shutdown for cleanup and makes sure that all errors are returned.
 	handleErr := func(inErr error) {
 		err = fmt.Errorf("failed to setup OTEL: %w", inErr)
-		shutdown(ctx)
+		if shutdownErr := shutdown(ctx); shutdownErr != nil {
+			err = errors.Join(
+				err,
+				fmt.Errorf("failed to shutdown OTEL: %w", shutdownErr),
+			)
+		}
 	}
 
 	// Set up propagator.

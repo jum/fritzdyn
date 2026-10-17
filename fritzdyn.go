@@ -153,7 +153,9 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	err = tx.GetContext(ctx, &host, "select * FROM hosts WHERE token = ?", token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -235,7 +237,9 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				defer res.Body.Close()
+				defer func() {
+					_ = res.Body.Close()
+				}()
 				if res.StatusCode/100 != 2 {
 					slog.ErrorContext(ctx, "Get", "status", res.Status, "code", res.StatusCode)
 					http.Error(w, res.Status, http.StatusInternalServerError)
@@ -294,7 +298,7 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				cmd := exec.Command("sh", "-c", cmdStr.String()+" \""+argStr.String()+"\"")
+				cmd := exec.Command("sh", "-c", cmdStr.String()+" \""+argStr.String()+"\"") // #nosec G204 -- configured command
 				stdoutStderr, err := cmd.CombinedOutput()
 				if err != nil {
 					slog.ErrorContext(ctx, "cmd", "err", err)
@@ -310,8 +314,8 @@ func (fh *FritzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprintf(w, "OK modified\n")
+		_, _ = fmt.Fprintf(w, "OK modified\n")
 	} else {
-		fmt.Fprintf(w, "OK\n")
+		_, _ = fmt.Fprintf(w, "OK\n")
 	}
 }

@@ -86,11 +86,13 @@ func main() {
 	if strings.HasPrefix(port, "/") {
 		network = "unix"
 		addr = port
-		err := os.Remove(addr)
+		err := os.Remove(addr) // #nosec G703 -- validated socket path
 		if err != nil && !os.IsNotExist(err) {
 			slog.Error("remove unix socket", "err", err)
 		}
-		defer os.Remove(addr)
+		defer func() {
+			_ = os.Remove(addr) // #nosec G703 -- validated socket path
+		}()
 		slog.Info("Listening", "addr", addr)
 	} else {
 		network = "tcp"
@@ -103,7 +105,9 @@ func main() {
 		slog.Error("NewFritzHandler", "err", err)
 		os.Exit(1)
 	}
-	defer fh.Close()
+	defer func() {
+		_ = fh.Close()
+	}()
 	ah := NewAdminHandler(fh.DB)
 	mux.Handle("/admin/", ah)
 	mux.Handle("/", fh)
@@ -133,8 +137,9 @@ func main() {
 		)
 	}
 	srv := http.Server{
-		Addr:    addr,
-		Handler: handler,
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	listener, err := net.Listen(network, addr)
 	if err != nil {
@@ -142,7 +147,7 @@ func main() {
 		os.Exit(1)
 	}
 	if network == "unix" {
-		err := os.Chmod(addr, 0666)
+		err := os.Chmod(addr, 0666) // #nosec G302,G703 -- intentionally allow read/write access for all users
 		if err != nil {
 			slog.Error("chmod", "addr", addr, "err", err)
 			os.Exit(1)
